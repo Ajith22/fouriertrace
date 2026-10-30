@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 from fouriertrace import find_curves, fourier_series, join_curves, reconstruction_error, resample
-from fouriertrace.export import desmos_expression
+from fouriertrace.export import desmos_expression, format_equation
 
 
 def test_circle_is_one_term():
@@ -52,3 +52,10 @@ def test_desmos_expression_shape():
     expr = desmos_expression(fourier_series(np.exp(1j * t) + np.exp(-2j * t), terms=2))
     assert expr.startswith("\\left(") and expr.endswith("\\right)")
     assert "\\cos(1t" in expr and "\\sin(-2t" in expr
+
+
+def test_printed_equations_for_a_circle():
+    t = 2 * np.pi * np.arange(64) / 64
+    s = fourier_series(1 + 2 * np.exp(1j * (t + 0.5)), terms=1)
+    assert format_equation(s, "complex") == "z(t) = (1 + 0i) + 2·e^(i(t + 0.5))"
+    assert format_equation(s, "xy") == "x(t) = 1 + 2·cos(t + 0.5)\ny(t) = 0 + 2·sin(t + 0.5)"

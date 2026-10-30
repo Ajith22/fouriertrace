@@ -35,6 +35,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="keep pixel units (y flipped) instead of normalising to [-1, 1]")
     p.add_argument("--animate", nargs="?", const="epicycles.gif", metavar="FILE",
                    help="also render an epicycle animation (default name: epicycles.gif; .mp4 needs ffmpeg)")
+    p.add_argument("-p", "--print", dest="print_fmt", nargs="?", const="complex",
+                   choices=sorted(export.FORMATS), metavar="FORMAT",
+                   help="print the equation(s) to the terminal: complex (default), xy, desmos or latex")
+    p.add_argument("--digits", type=int, default=4, help="decimal places in printed equations (default: 4)")
     p.add_argument("--frames", type=int, default=240, help="animation frames (default: 240)")
     p.add_argument("--circles", type=int, default=60, help="circles drawn per curve in the animation")
     return p
@@ -69,6 +73,13 @@ def main(argv: list[str] | None = None) -> None:
     for i, (s, z) in enumerate(zip(series, samples)):
         err = reconstruction_error(s, z)
         print(f"  curve {i}: mean error {err:.4g} ({'pixels' if args.pixels else 'of half-width'})")
+
+    if args.print_fmt:
+        print(f"\nEquation{'s' if len(series) > 1 else ''} ({args.print_fmt}, 0 <= t < 2*pi):")
+        for i, s in enumerate(series):
+            if len(series) > 1:
+                print(f"\n# curve {i}")
+            print(export.format_equation(s, args.print_fmt, args.digits))
 
     if args.animate:
         path = os.path.join(args.out, args.animate)

@@ -73,3 +73,56 @@ def latex_complex(series: FourierSeries, digits: int = 3) -> str:
         c = f"({_num(t.c.real, digits)}{'+' if t.c.imag >= 0 else '-'}{_num(abs(t.c.imag), digits)}i)"
         parts.append(c if t.n == 0 else f"{c}e^{{{t.n}it}}")
     return "z(t) = " + " + ".join(parts)
+
+
+def _signed_join(parts: list[str]) -> str:
+    out = parts[0] if parts else "0"
+    for p in parts[1:]:
+        out += f" - {p[1:]}" if p.startswith("-") else f" + {p}"
+    return out
+
+
+def _angle(n: int, phase: float, digits: int) -> str:
+    nt = "t" if n == 1 else "-t" if n == -1 else f"{n}t"
+    p = _num(phase, digits)
+    sign, mag = ("-", p[1:]) if p.startswith("-") else ("+", p)
+    return f"{nt} {sign} {mag}"
+
+
+def plain_complex(series: FourierSeries, digits: int = 4) -> str:
+    """Readable complex form:  z(t) = c0 + r1·e^(i(n1·t + p1)) + ..."""
+    parts = []
+    for t in series.sorted_for_drawing():
+        if t.n == 0:
+            im = _num(t.c.imag, digits)
+            sign, mag = ("-", im[1:]) if im.startswith("-") else ("+", im)
+            parts.append(f"({_num(t.c.real, digits)} {sign} {mag}i)")
+        else:
+            parts.append(f"{_num(t.radius, digits)}·e^(i({_angle(t.n, t.phase, digits)}))")
+    return "z(t) = " + _signed_join(parts)
+
+
+def plain_xy(series: FourierSeries, digits: int = 4) -> str:
+    """Two real equations:  x(t) = Σ r cos(nt + p),  y(t) = Σ r sin(nt + p)."""
+    xs, ys = [], []
+    for t in series.sorted_for_drawing():
+        if t.n == 0:
+            xs.append(_num(t.c.real, digits))
+            ys.append(_num(t.c.imag, digits))
+        else:
+            a = _angle(t.n, t.phase, digits)
+            xs.append(f"{_num(t.radius, digits)}·cos({a})")
+            ys.append(f"{_num(t.radius, digits)}·sin({a})")
+    return f"x(t) = {_signed_join(xs)}\ny(t) = {_signed_join(ys)}"
+
+
+FORMATS = {
+    "complex": plain_complex,
+    "xy": plain_xy,
+    "desmos": desmos_expression,
+    "latex": latex_complex,
+}
+
+
+def format_equation(series: FourierSeries, fmt: str = "complex", digits: int = 4) -> str:
+    return FORMATS[fmt](series, digits)

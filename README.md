@@ -30,7 +30,28 @@ fouriertrace drawing.png                      # one series per curve -> out/
 fouriertrace drawing.png -t 200 --animate     # more detail + epicycles.gif
 fouriertrace drawing.png --join               # one series for the whole image
 fouriertrace drawing.png --animate demo.mp4   # MP4 instead of GIF (needs ffmpeg)
+fouriertrace drawing.png -t 10 --print        # print the equation in the terminal
 ```
+
+### Printing the equation
+
+`--print` (or `-p`) writes the series to the terminal. Use a small `-t` to get a short equation.
+
+```console
+$ fouriertrace heart.png -t 4 --print
+z(t) = (0.4489 - 0.0001i) + 0.3258·e^(i(t + 1.5697)) + 0.0776·e^(i(-4t + 1.5737)) + 0.0347·e^(i(6t + 1.5638)) + 0.0062·e^(i(-14t + 1.5835))
+
+$ fouriertrace heart.png -t 4 -p xy --digits 3
+x(t) = 0.449 + 0.326·cos(t + 1.57) + 0.078·cos(-4t + 1.574) + ...
+y(t) = 0 + 0.326·sin(t + 1.57) + 0.078·sin(-4t + 1.574) + ...
+```
+
+| Format | Looks like |
+|---|---|
+| `complex` (default) | `z(t) = c₀ + r·e^(i(nt + φ)) + …` |
+| `xy` | `x(t) = Σ r·cos(nt + φ)`, `y(t) = Σ r·sin(nt + φ)` |
+| `desmos` | `\left(…, …\right)`, ready to paste into Desmos |
+| `latex` | `z(t) = (a+bi)e^{nit} + …` |
 
 | Option | What it does |
 |---|---|
@@ -41,6 +62,8 @@ fouriertrace drawing.png --animate demo.mp4   # MP4 instead of GIF (needs ffmpeg
 | `--invert` | treat light pixels as the drawing (normally auto-detected) |
 | `--threshold` | fixed 0–255 threshold instead of automatic |
 | `--pixels` | keep pixel units instead of normalising to [-1, 1] |
+| `-p, --print [FORMAT]` | print the equation(s): `complex` (default), `xy`, `desmos` or `latex` |
+| `--digits` | decimal places in printed equations (default 4) |
 | `--animate [FILE]` | render the epicycle animation |
 | `--frames`, `--circles` | animation length and circles drawn per curve |
 
