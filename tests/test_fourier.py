@@ -59,3 +59,23 @@ def test_printed_equations_for_a_circle():
     s = fourier_series(1 + 2 * np.exp(1j * (t + 0.5)), terms=1)
     assert format_equation(s, "complex") == "z(t) = (1 + 0i) + 2·e^(i(t + 0.5))"
     assert format_equation(s, "xy") == "x(t) = 1 + 2·cos(t + 0.5)\ny(t) = 0 + 2·sin(t + 0.5)"
+
+
+def test_centerline_follows_a_figure_eight_through_its_crossing():
+    from fouriertrace.centerline import trace_centerlines
+
+    t = np.linspace(0, 2 * np.pi, 800, endpoint=False)
+    x = 200 + 150 * np.sin(t)
+    y = 150 + 90 * np.sin(t) * np.cos(t)  # lemniscate: crosses itself at (200, 150)
+    img = np.zeros((300, 400), np.uint8)
+    cv2.polylines(img, [np.stack([x, y], 1).astype(np.int32)], True, 255, 7)
+
+    paths = trace_centerlines(img)
+    assert len(paths) == 1                                  # one pen stroke, not two outlines
+    z = paths[0]
+    assert np.abs(z - (200 + 150j)).min() < 5               # goes through the crossing
+    true_len = np.abs(np.diff(np.append(x + 1j * y, x[0] + 1j * y[0]))).sum()
+    assert abs(np.abs(np.diff(z)).sum() / true_len - 1) < 0.1
+
+    # outline tracing, by contrast, only sees the outer edge
+    assert len(find_curves(img)) == 1

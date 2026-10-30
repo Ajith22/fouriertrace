@@ -8,6 +8,7 @@ import os
 import cv2
 
 from . import animate, export
+from .centerline import trace_centerlines
 from .contours import find_curves, join_curves, load_binary, resample, to_math_coords
 from .fourier import fourier_series, reconstruction_error
 
@@ -25,6 +26,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="points sampled along each curve before the FFT (default: 1024)")
     p.add_argument("--join", action="store_true",
                    help="chain all curves into one path -> a single series for the whole image")
+    p.add_argument("-c", "--centerline", action="store_true",
+                   help="follow the middle of drawn lines, straight through crossings "
+                        "(for line drawings and self-crossing curves like kolams)")
     p.add_argument("--holes", action="store_true", help="also trace inner outlines (holes)")
     p.add_argument("--max-curves", type=int, default=20, help="keep at most this many curves, largest first")
     p.add_argument("--min-length", type=float, default=40, help="ignore outlines shorter than this (pixels)")
@@ -50,7 +54,10 @@ def main(argv: list[str] | None = None) -> None:
 
     mask = load_binary(args.image, invert=args.invert, threshold=args.threshold)
     h, w = mask.shape
-    curves = find_curves(mask, min_length=args.min_length, holes=args.holes)[: args.max_curves]
+    if args.centerline:
+        curves = trace_centerlines(mask, min_length=args.min_length)[: args.max_curves]
+    else:
+        curves = find_curves(mask, min_length=args.min_length, holes=args.holes)[: args.max_curves]
     if not curves:
         raise SystemExit("No curves found. Try --invert, --threshold or a lower --min-length.")
     curves = to_math_coords(curves, w, h, normalize=not args.pixels)

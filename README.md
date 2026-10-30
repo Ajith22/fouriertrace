@@ -75,10 +75,24 @@ fouriertrace drawing.png -t 10 --print         # print a short equation in the t
 fouriertrace drawing.png -p xy                 # print as x(t) and y(t)
 fouriertrace drawing.png -p desmos             # print a line you can paste into Desmos
 fouriertrace drawing.png -t 200 --animate      # more detail + epicycles.gif
+fouriertrace kolam.png -c -t 60 --animate      # line drawing that crosses itself
 fouriertrace drawing.png --join -p             # ONE equation for the whole image
 fouriertrace logo.png --invert                 # light drawing on a dark background
 fouriertrace drawing.png --animate demo.mp4    # MP4 instead of GIF (needs ffmpeg)
 ```
+
+### Outlines vs. centerlines
+
+There are two ways to turn ink into a curve:
+
+| Mode | Follows | Use it for |
+|---|---|---|
+| outline (default) | the **edge** of each filled shape | silhouettes, logos, icons, filled shapes |
+| `-c, --centerline` | the **middle** of each drawn line, going straight through every crossing | line drawings, signatures, kolams, figure-8s, anything drawn with a pen |
+
+With a self-crossing line drawing, outline mode only finds the outer boundary, because the crossings join everything into one blob. Centerline mode thins the line to its middle, then walks it like a pen: at every crossing it carries straight on. A single continuous drawing comes out as **one** equation.
+
+Open strokes (a line with two loose ends) are traced out and back, since a Fourier series has to be a closed loop.
 
 ### Printing the equation
 
@@ -115,7 +129,8 @@ Read each term `r·e^(i(nt + φ))` as one circle: radius `r`, spinning `n` times
 | `--digits N` | `4` | decimal places in printed equations |
 | `-n, --samples N` | `1024` | points sampled along each curve before the FFT |
 | `--join` | off | chain every curve into one path, giving a single series (the jumps between shapes get drawn too) |
-| `--holes` | off | also trace inner outlines, such as the inside of an "O" |
+| `-c, --centerline` | off | follow the middle of drawn lines, straight through crossings (see above) |
+| `--holes` | off | also trace inner outlines, such as the inside of an "O" (outline mode) |
 | `--max-curves N` | `20` | keep at most N curves, largest first |
 | `--min-length PX` | `40` | ignore outlines shorter than this, in pixels (removes specks) |
 | `--invert` | auto | treat light pixels as the drawing |
@@ -169,7 +184,7 @@ points = series(np.linspace(0, 2 * np.pi, 500))         # evaluate the curve any
 
 ## How it works
 
-1. **Trace.** The image is turned into a black-and-white mask (automatic Otsu threshold, or the alpha channel of a transparent PNG). OpenCV traces the edge of every shape.
+1. **Trace.** The image is turned into a black-and-white mask (automatic Otsu threshold, or the alpha channel of a transparent PNG). In outline mode, OpenCV traces the edge of every shape. In centerline mode, the ink is thinned to a 1-pixel skeleton (scikit-image), the pixels around each crossing are merged into one point, and the skeleton is walked like a pen, going straight through each crossing.
 2. **Treat points as complex numbers.** Each point `(x, y)` on an outline becomes `z = x + iy`, so a closed outline becomes a looping function `z(t)` for `t` from 0 to 2π. The outline is resampled so the points are evenly spaced along it.
 3. **Fourier transform.** A Fast Fourier Transform breaks the loop into circles:
 
@@ -184,7 +199,9 @@ points = series(np.linspace(0, 2 * np.pi, 500))         # evaluate the curve any
 ## Tips and limitations
 
 - **Use high-contrast images:** dark shapes on a light background, light on dark with `--invert`, or a transparent PNG. Check `mask.png` if the result looks odd, and adjust `--threshold`.
-- **Thin pen strokes are traced around their outside edge.** A single drawn line becomes the outline of that line (a thin loop). A centreline mode is planned.
+- **For line drawings, use `--centerline`.** Without it, a drawn line is traced around its outside edge, and a line that crosses itself shows only its outer boundary.
+- **Centerline mode likes clean lines.** Lines of fairly even thickness that cross cleanly work best. Small dots or specks are ignored (raise `--min-length` to ignore bigger ones). Where three or more lines meet at one point, the pen picks the straightest way through, which may not be how it was drawn.
+- **Hand-drawn lines are slightly wobbly**, and with many terms the series reproduces the wobble. Fewer terms (`-t 40` to `-t 80`) give a smoother curve.
 - **Sharp corners need many terms.** Square corners always overshoot slightly (the Gibbs phenomenon); raising `-t` makes it smaller.
 - **`--join` draws connecting lines** between separate shapes, because a single equation has to travel from one shape to the next.
 - Photos and shaded images don't work well: the tool is meant for silhouettes, logos, icons and line art.
@@ -204,6 +221,7 @@ points = series(np.linspace(0, 2 * np.pi, 500))         # evaluate the curve any
 **What this code is.** fouriertrace was written from scratch for this repository; no code was copied from the projects above. It was built with help from Claude (Anthropic's AI assistant). It stands on these open-source libraries:
 - [NumPy](https://numpy.org/) for the FFT and maths
 - [OpenCV](https://opencv.org/) for thresholding and contour tracing
+- [scikit-image](https://scikit-image.org/) for skeletonizing line drawings
 - [Matplotlib](https://matplotlib.org/) and [Pillow](https://python-pillow.org/) for previews and animations
 
 ---
@@ -217,7 +235,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-Tests run automatically on GitHub Actions for every push. Ideas for next steps: centreline tracing for line drawings, SVG input, and a web version.
+Tests run automatically on GitHub Actions for every push. Ideas for next steps: SVG input and a web version.
 
 ---
 
